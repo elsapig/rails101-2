@@ -1,7 +1,7 @@
 class GroupsController < ApplicationController
 
   before_action :authenticate_user! , only: [:new, :create, :edit, :update, :destroy]
-  before_action :find_group_and_check_permission, only:[:edit, :update, :destroy]
+  before_action :find_group_and_check_permission, only:[:edit, :update, :destroy, :join, :quit]
 
   def index
     @groups = Group.all
@@ -24,6 +24,7 @@ class GroupsController < ApplicationController
     @group.user = current_user
 
     if @group.save
+      current_user.join!(@group)
        redirect_to groups_path
     else
       render :new
@@ -47,6 +48,30 @@ class GroupsController < ApplicationController
     redirect_to groups_path
   end
 
+  def join
+    @group = Group.find(params[:id])
+
+    if !current_user.is_member_of?(@group)
+      current_user.join!(@group)
+      flash[:notice] = "加入本討論板成功！"
+    else
+      flash[:warning] = "你已經是本討論板成員了！"
+    end
+  end
+
+  def quit
+    @group = Group.find(params[:id])
+
+    if current_user.is_member_of?(@group)
+      current_user.quit!(@group)
+      flash[:alert] = "已退出討論版！"
+    else
+      flash[:warning] = "你不是本討論板成員，怎麼退出 XD"
+    end
+
+    redirect_to group_path(@group)
+  end
+
   private
 
   def group_params
@@ -60,4 +85,5 @@ class GroupsController < ApplicationController
     redirect_to root_path, alert:"You have no permission."
    end
   end
+
 end
